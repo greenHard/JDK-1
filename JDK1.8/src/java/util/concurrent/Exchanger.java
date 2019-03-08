@@ -101,6 +101,10 @@ import java.util.concurrent.locks.LockSupport;
  * @since 1.5
  * @author Doug Lea and Bill Scherer and Michael Scott
  * @param <V> The type of objects that may be exchanged
+ *
+ * 可以在对中对元素进行配对和交换的线程的同步点。每个线程将条目上的某个方法呈现给 exchange 方法，与伙伴线程进行匹配，并且* 在返回时接收其伙伴的对象。Exchanger 可能被视为 SynchronousQueue 的双向形式。Exchanger 可能在应用程序（比如遗传算法和* 管道设计）中很有用.
+ *
+ * TODO 太难了,看不明白
  */
 public class Exchanger<V> {
 

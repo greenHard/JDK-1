@@ -34,11 +34,12 @@
  */
 
 package java.util.concurrent.locks;
-import java.util.concurrent.TimeUnit;
+import sun.misc.Unsafe;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import sun.misc.Unsafe;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides a framework for implementing blocking locks and related
@@ -985,6 +986,7 @@ public abstract class AbstractQueuedSynchronizer
             for (;;) {
                 final Node p = node.predecessor();
                 if (p == head) {
+                    //对于CountDownLatch而言，如果计数器值不等于0，那么r 会一直小于0
                     int r = tryAcquireShared(arg);
                     if (r >= 0) {
                         setHeadAndPropagate(node, r);
@@ -993,6 +995,7 @@ public abstract class AbstractQueuedSynchronizer
                         return;
                     }
                 }
+                // 等待
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
                     throw new InterruptedException();

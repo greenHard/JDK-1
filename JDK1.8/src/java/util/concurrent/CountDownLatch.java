@@ -152,6 +152,16 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ *
+ * countDownLatch 内部通过共享锁实现。
+ *
+ * 1. 在创建 CountDownLatch 实例时，需要传递一个int型的参数：count，该参数为计数器的初始值，也可以理解为该共享锁可以获取的总次数。
+ * 2. 当某个线程调用 #await() 方法，程序首先判断 count 的值是否为 0 ，如果不为 0 的话，则会一直等待直到为 0 为止。
+ * 3. 当其他线程调用 #countDown() 方法时，则执行释放共享锁状态，使 count 值 - 1。
+ * 4. 当在创建 CountDownLatch 时初始化的 count 参数，必须要有 count 线程调用#countDown() 方法，才会使计数器 count 等于 0 ，锁才会释放，前面等待的线程才会继续运行。
+ * 5. 注意 CountDownLatch 不能回滚重置。
+ *
  */
 public class CountDownLatch {
     /**
@@ -165,21 +175,30 @@ public class CountDownLatch {
             setState(count);
         }
 
+        // 获取同步状态
         int getCount() {
             return getState();
         }
 
+        // 获取同步状态
+        @Override
         protected int tryAcquireShared(int acquires) {
             return (getState() == 0) ? 1 : -1;
         }
 
+        // 释放同步状态
+        @Override
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
             for (;;) {
+                // 获取锁状态
                 int c = getState();
+                // c == 0 直接返回，释放锁成功
                 if (c == 0)
                     return false;
+                // 计算新“锁计数器”
                 int nextc = c-1;
+                // 更新锁状态（计数器）
                 if (compareAndSetState(c, nextc))
                     return nextc == 0;
             }

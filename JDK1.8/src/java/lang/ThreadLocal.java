@@ -304,6 +304,8 @@ public class ThreadLocal<T> {
          * == null) mean that the key is no longer referenced, so the
          * entry can be expunged from table.  Such entries are referred to
          * as "stale entries" in the code that follows.
+         *
+         * Entry的key就是ThreadLocal，而value就是值，弱引用
          */
         static class Entry extends WeakReference<ThreadLocal<?>> {
             /** The value associated with this ThreadLocal. */
@@ -452,34 +454,38 @@ public class ThreadLocal<T> {
          * @param value the value to be set
          */
         private void set(ThreadLocal<?> key, Object value) {
-
-            // We don't use a fast path as with get() because it is at
-            // least as common to use set() to create new entries as
-            // it is to replace existing ones, in which case, a fast
-            // path would fail more often than not.
-
             Entry[] tab = table;
             int len = tab.length;
+
+            // 根据 ThreadLocal 的散列值，查找对应元素在数组中的位置
             int i = key.threadLocalHashCode & (len-1);
 
+            // 采用“线性探测法”，寻找合适位置
             for (Entry e = tab[i];
                  e != null;
                  e = tab[i = nextIndex(i, len)]) {
                 ThreadLocal<?> k = e.get();
 
+                // key 存在，直接覆盖
                 if (k == key) {
                     e.value = value;
                     return;
                 }
 
+                // key == null，但是存在值（因为此处的e != null），说明之前的ThreadLocal对象已经被回收了
                 if (k == null) {
+                    // 用新元素替换陈旧的元素
                     replaceStaleEntry(key, value, i);
                     return;
                 }
             }
 
+            // ThreadLocal对应的key实例不存在也没有陈旧元素，new一个
             tab[i] = new Entry(key, value);
             int sz = ++size;
+
+            // cleanSomeSlots 清楚陈旧的Entry（key == null）
+            // 如果没有清理陈旧的 Entry 并且数组中的元素大于了阈值，则进行 rehash
             if (!cleanSomeSlots(i, sz) && sz >= threshold)
                 rehash();
         }

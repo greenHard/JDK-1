@@ -174,6 +174,7 @@ public class Semaphore implements java.io.Serializable {
             return getState();
         }
 
+        // 对于非公平而言，因为它不需要判断当前线程是否位于 CLH 同步队列列头，所以相对而言会简单些
         final int nonfairTryAcquireShared(int acquires) {
             for (;;) {
                 int available = getState();
@@ -187,9 +188,11 @@ public class Semaphore implements java.io.Serializable {
         protected final boolean tryReleaseShared(int releases) {
             for (;;) {
                 int current = getState();
+                // 信号量的许可数 = 当前信号许可数 + 待释放的信号许可数
                 int next = current + releases;
                 if (next < current) // overflow
                     throw new Error("Maximum permit count exceeded");
+                // 设置可获取的信号许可数为next
                 if (compareAndSetState(current, next))
                     return true;
             }
@@ -242,10 +245,14 @@ public class Semaphore implements java.io.Serializable {
 
         protected int tryAcquireShared(int acquires) {
             for (;;) {
+                // 判断该线程是否位于CLH队列的列头，从而实现公平锁
                 if (hasQueuedPredecessors())
                     return -1;
+                // 获取当前的信号量许可
                 int available = getState();
+                // 设置“获得acquires个信号量许可之后，剩余的信号量许可数
                 int remaining = available - acquires;
+                // CAS设置信号量
                 if (remaining < 0 ||
                     compareAndSetState(available, remaining))
                     return remaining;
@@ -260,6 +267,8 @@ public class Semaphore implements java.io.Serializable {
      * @param permits the initial number of permits available.
      *        This value may be negative, in which case releases
      *        must occur before any acquires will be granted.
+     *
+     * 创建具有给定的许可数和非公平的公平设置的 Semaphore
      */
     public Semaphore(int permits) {
         sync = new NonfairSync(permits);
@@ -275,6 +284,7 @@ public class Semaphore implements java.io.Serializable {
      * @param fair {@code true} if this semaphore will guarantee
      *        first-in first-out granting of permits under contention,
      *        else {@code false}
+     * 创建具有给定的许可数和给定的公平设置的 Semaphore
      */
     public Semaphore(int permits, boolean fair) {
         sync = fair ? new FairSync(permits) : new NonfairSync(permits);
